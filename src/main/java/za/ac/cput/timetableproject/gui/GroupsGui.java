@@ -54,6 +54,8 @@ public class GroupsGui extends JPanel {
         this.add(mainPanel, BorderLayout.CENTER);
 
         // Add action listeners for buttons
+        //add new function for btn 
+
         add_New.addActionListener(new ActionListener() {
     public void actionPerformed(ActionEvent e) {
         JPanel innerPanel = new JPanel(new GridLayout(2, 2));
@@ -106,7 +108,7 @@ public class GroupsGui extends JPanel {
 });
 
 
-
+//change function for btn 
        change.addActionListener(new ActionListener() {
     public void actionPerformed(ActionEvent e) {
         // Change group logic
@@ -147,6 +149,7 @@ public class GroupsGui extends JPanel {
         }
     }
 });
+//delete function for btn 
 
         delete.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {

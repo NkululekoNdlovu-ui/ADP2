@@ -24,6 +24,7 @@ public class GroupsDao {
         try {
             if (this.con == null || this.con.isClosed()) {
                 this.con = DatabaseConnection.createConnection();
+                //creating the database table after connecting to db
                 createGroup();
                 JOptionPane.showMessageDialog(null, "Connection Established");
             }
