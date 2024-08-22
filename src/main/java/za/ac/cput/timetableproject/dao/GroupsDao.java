@@ -3,183 +3,168 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package za.ac.cput.timetableproject.dao;
-import za.ac.cput.timetableproject.connection.DatabaseConnection;
-import za.ac.cput.timetableproject.domain.Group;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 
-/**
- *
- * @author Asanda Ndhlela
- */
+import javax.swing.JOptionPane;
+import za.ac.cput.timetableproject.connection.DatabaseConnection;
+import za.ac.cput.timetableproject.domain.Group;
+
+
 public class GroupsDao {
 
+    private PreparedStatement ps;
     private Connection con;
 
-    //FOR CONNECTION 
     public GroupsDao() {
         try {
-            this.con = DatabaseConnection.createConnection();
-            createTable();
-        } catch (Exception error) {
-            System.out.println("Error " + error);
-        }
-    }
-    
-    //creating a method to create a db table 
-    public void createTable(){
-        
-        String sql = "CREATE TABLE Groups(" +
-                "group_id INT PRIMARY KEY, "+
-                "group_name VARCHAR(20) NOT NULL)";
-        
-        try(Statement sqlStatement = this.con.createStatement()){
-            
-            sqlStatement.execute(sql);
-            System.out.println("DBTable created!");
-            
-        }catch(SQLException error){
-            if(error.getSQLState().equals("X0Y32")){
-                System.out.println("BBTable already exist");
-            }else{
-                System.out.println("Error creating table " + error.getMessage());
+            if (this.con == null || this.con.isClosed()) {
+                this.con = DatabaseConnection.createConnection();
+                createGroup();
+                JOptionPane.showMessageDialog(null, "Connection Established");
             }
-        }catch(Exception error){
-            System.out.println("Error "+ error);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         }
     }
-
-    //creating a method to save (INSERT) to the database and also display the same data to the JTable
-    public void addNew(Group group) {
-
-        System.out.println("Checking the sql prepareStatement ");
-        String sql = "INSERT INTO Groups (group_id, group_name) VALUES(?,?)";
-        System.out.println("Checking complete");
-
-        try (PreparedStatement prepStatement = this.con.prepareStatement(sql)) {
+    public void createGroup(){
+        String sql = "CREATE TABLE Group(GroupID INT PRIMARY KEY ,GroupName VARCHAR(50))";
+        
+        try{
+            ps = con.prepareStatement(sql);
+            ps.executeUpdate();
+             JOptionPane.showMessageDialog(null, "You have sucessfully created a table");
             
-            prepStatement.setInt(1, group.getGroupId());
-            prepStatement.setString(2, group.getGroupName());
-            
-            System.out.println("Checking the number of rows affected ");
-            int numberOfRowsAdded = prepStatement.executeUpdate();
-            System.out.println("Number of rows affected is "+ numberOfRowsAdded );
+        }catch(SQLException k){
+             JOptionPane.showMessageDialog(null, "SQL error occured " + k);
+        }
+        
+    }
 
-            if(numberOfRowsAdded > 0){
-                JOptionPane.showMessageDialog(null, "Data Successfully Added!!");
-            }else{
-                JOptionPane.showMessageDialog(null, "Data Not Added!!");
+    public boolean save(Group group) {
+        if (this.con == null) {
+            JOptionPane.showMessageDialog(null, "No database connection.");
+            return false;
+        }
+
+        String checkSql = "SELECT COUNT(*) FROM `Group` WHERE GroupID = ?";
+        String sql = "INSERT INTO `Group` (GroupID, GroupName) VALUES (?, ?)";
+
+        try {
+            ps = con.prepareStatement(checkSql);
+            ps.setInt(1, group.getGroupId());
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
+            rs.close();
+
+            if (count > 0) {
+                JOptionPane.showMessageDialog(null, "Error: GroupID already exists.");
+                return false;
+            } else {
+                ps.close();
+
+                ps = con.prepareStatement(sql);
+                ps.setInt(1, group.getGroupId());
+                ps.setString(2, group.getGroupName());
+
+                int rowsAffected = ps.executeUpdate();
+                return rowsAffected > 0;
             }
-            
-            readFromDB();
-            
-        } catch (SQLException error) {
-            System.out.println("Error "+ error);
-        } catch (Exception error){
-            System.out.println("Error "+error);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closePreparedStatement();
         }
+        return false;
     }
-    
-    //creating a method to read and retrive (RETREIVE) the predefined database table
-    public ArrayList<Group> readFromDB(){
-        
-        ArrayList<Group> groups = new ArrayList<>();
-        
-        String sql = "SELECT group_id, group_name FROM Groups";
-        
-        try(PreparedStatement prepStatement = this.con.prepareStatement(sql)){
-            
-            ResultSet result = prepStatement.executeQuery();
-            
-            while(result.next()){
-                int groupId = result.getInt("group_id");
-                String groupName = result.getString("group_name");
-                
-                Group group = new Group(groupId, groupName);
-                
-                groups.add(group);
-            }          
-        }catch(SQLException error){
-            System.out.println("Error " + error);
-        }catch(Exception error){
-            System.out.println("Error " + error);
-        }
-        return groups;
-    }
-    
-    //creating a method that will populate the JTable
-    public void populateTable(JTable table){
-        
-        ArrayList<Group> groups = readFromDB();
-        
-        String[] columnNames = {"Group ID", "Group Name"};
-        Object[][] data = new Object[groups.size()][2];
-        
-        for(int i = 0; i < groups.size(); i++){
-            data[i][0] = groups.get(i).getGroupId();
-            data[i][1] = groups.get(i).getGroupName();
-        }
-        
-        DefaultTableModel model = new DefaultTableModel(data,columnNames);
-        table.setModel(model);   
-    } 
-    
-    //creating a method to change (UPDATE) the predefined data from the JTable and Database table
-    public void update(Group group){
-        
-        String sql = "UPDATE Groups SET group_name = ? WHERE group_id = ? ";
-        
-        try(PreparedStatement prepStatement = this.con.prepareStatement(sql)){
-            
-            prepStatement.setString(1, group.getGroupName());
-            prepStatement.setInt(2,group.getGroupId());
-            
-            int numberOfRowsChanged = prepStatement.executeUpdate();
-            
-            if(numberOfRowsChanged > 0){
-                JOptionPane.showMessageDialog(null, "Update success!!");
-            }else{
-                JOptionPane.showMessageDialog(null, "Update not successful");
-            }
-            
-        }catch(SQLException error){
-            System.out.println("Error " + error);
-            
-        }catch(Exception error){
-            System.out.println("Error "+ error);
-        }
-    }
-    
-    //creating a method to remove (DELETE) a selected and predefined data from both JTable and the DATABASE
-    public void delete(String groupId){
-        
-        String sql = "DELETE FROM Groups WHERE group_id = ?";
-        
-        try(PreparedStatement prepStatement = this.con.prepareStatement(sql)){
-            
-            prepStatement.setString(1, groupId);
-            
-            int numberOfRowsRemoved = prepStatement.executeUpdate();
-            
-            if(numberOfRowsRemoved > 0){
-                JOptionPane.showMessageDialog(null, "Data Delected Successfully");
-            }else{
-                JOptionPane.showMessageDialog(null, "Delection Failed");
-            }
-        }catch(SQLException error){
-            System.out.println("Error "+ error);
-        }catch(Exception error){
-            System.out.println("Error "+ error);
-        }
-    }
-    
-    
 
+    public void updateGroup(int groupId, String newGroupName) {
+        String sql = "UPDATE `Group` SET GroupName = ? WHERE GroupID = ?";
+
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setString(1, newGroupName);
+            ps.setInt(2, groupId);
+
+            int rowsUpdated = ps.executeUpdate();
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(null, "Group updated successfully.");
+            } else {
+                JOptionPane.showMessageDialog(null, "No group found with the provided GroupID.");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closePreparedStatement();
+        }
+    }
+
+    public void deleteGroup(int groupId) {
+        String sql = "DELETE FROM `Group` WHERE GroupID = ?";
+
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, groupId);
+
+            int rowsDeleted = ps.executeUpdate();
+            if (rowsDeleted > 0) {
+                JOptionPane.showMessageDialog(null, "Group deleted successfully.");
+            } else {
+                JOptionPane.showMessageDialog(null, "No group found with the provided GroupID.");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closePreparedStatement();
+        }
+    }
+
+    public boolean isGroupIdExists(int groupId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM `Group` WHERE GroupID = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, groupId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    public ArrayList<Group> readGroups() {
+        ArrayList<Group> list = new ArrayList<>();
+        String sql = "SELECT * FROM `Group`";
+
+        try {
+            ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if (rs != null) {
+                while (rs.next()) {
+                    int id = rs.getInt("GroupID");
+                    String groupName = rs.getString("GroupName");
+                    list.add(new Group(id, groupName));
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closePreparedStatement();
+        }
+        return list;
+    }
+
+    private void closePreparedStatement() {
+        try {
+            if (ps != null) {
+                ps.close();
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error closing resources: " + e.getMessage());
+        }
+    }
 }
