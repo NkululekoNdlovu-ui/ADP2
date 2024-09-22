@@ -4,8 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
 import za.ac.cput.timetableproject.dao.VenueDao;
 import za.ac.cput.timetableproject.domain.Venue;
@@ -51,7 +49,6 @@ public class VenueGui extends JPanel {
         // Add columns to table model
         tableModel.addColumn("VenueID");
         tableModel.addColumn("Venue Name");
-        tableModel.addColumn("Capacity");
 
         // Add buttons to panel
         panel.add(addNew);
@@ -69,21 +66,17 @@ public class VenueGui extends JPanel {
         addNew.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Add new venue logic
-                JPanel innerPanel = new JPanel(new GridLayout(3, 2));
+                JPanel innerPanel = new JPanel(new GridLayout(2, 2));
                 JTextField venueId = new JTextField();
                 JTextField venueName = new JTextField();
-                JTextField venueCapacity = new JTextField();
 
                 JLabel lblVenueId = new JLabel("Venue ID");
                 JLabel lblVenueName = new JLabel("Venue Name");
-                JLabel lblVenueCapacity = new JLabel("Capacity");
 
                 innerPanel.add(lblVenueId);
                 innerPanel.add(venueId);
                 innerPanel.add(lblVenueName);
                 innerPanel.add(venueName);
-                innerPanel.add(lblVenueCapacity);
-                innerPanel.add(venueCapacity);
 
                 int result = JOptionPane.showConfirmDialog(null, innerPanel,
                         "Enter Venue Details", JOptionPane.OK_CANCEL_OPTION);
@@ -92,9 +85,8 @@ public class VenueGui extends JPanel {
                     try {
                         int id = Integer.parseInt(venueId.getText());
                         String name = venueName.getText();
-                        int capacity = Integer.parseInt(venueCapacity.getText());
 
-                        Venue newVenue = new Venue(id, name, capacity);
+                        Venue newVenue = new Venue(id, name);
                         VenueDao dao = new VenueDao();
 
                         if (dao.isVenueIdExists(id)) {
@@ -103,11 +95,11 @@ public class VenueGui extends JPanel {
                         }
 
                         dao.saveVenue(newVenue);
-                        tableModel.addRow(new Object[]{id, name, capacity});
+                        tableModel.addRow(new Object[]{id, name});
                         JOptionPane.showMessageDialog(null, "Venue successfully added");
 
                     } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Please enter valid numbers for Venue ID and Capacity.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "Please enter a valid number for Venue ID.", "Input Error", JOptionPane.ERROR_MESSAGE);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Error occurred: " + ex.getMessage());
                     }
@@ -123,35 +115,27 @@ public class VenueGui extends JPanel {
                 if (selectedRow != -1) {
                     int oldVenueId = (int) table.getValueAt(selectedRow, 0);
 
-                    JPanel innerPanel = new JPanel(new GridLayout(2, 2));
+                    JPanel innerPanel = new JPanel(new GridLayout(1, 2));
                     JTextField newName = new JTextField();
-                    JTextField newCapacity = new JTextField();
 
                     JLabel labelNewName = new JLabel("New Venue Name:");
-                    JLabel labelNewCapacity = new JLabel("New Capacity:");
 
                     innerPanel.add(labelNewName);
                     innerPanel.add(newName);
-                    innerPanel.add(labelNewCapacity);
-                    innerPanel.add(newCapacity);
 
                     int result = JOptionPane.showConfirmDialog(null, innerPanel, "Update Venue Details", JOptionPane.OK_CANCEL_OPTION);
 
                     if (result == JOptionPane.OK_OPTION) {
                         try {
                             String updatedName = newName.getText().trim();
-                            int updatedCapacity = Integer.parseInt(newCapacity.getText().trim());
 
                             VenueDao dao = new VenueDao();
-                            dao.udpateVenueTable(oldVenueId, updatedName, updatedCapacity);
+                            dao.updateVenue(oldVenueId, updatedName);
 
                             tableModel.setValueAt(updatedName, selectedRow, 1);
-                            tableModel.setValueAt(updatedCapacity, selectedRow, 2);
 
                             JOptionPane.showMessageDialog(null, "Venue updated successfully!");
 
-                        } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(null, "Capacity must be a number.", "Input Error", JOptionPane.ERROR_MESSAGE);
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(null, "Error occurred: " + ex.getMessage());
                         }

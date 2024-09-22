@@ -9,7 +9,7 @@ public class DatabaseConnection {
 
     public static Connection createConnection() throws SQLException {
         if (con == null || con.isClosed()) {
-            String url = "jdbc:derby://localhost:1527/Project";
+            String url = "jdbc:derby://localhost:1527/Lecture5";
             String username = JOptionPane.showInputDialog("Enter the username for the database:");
             String password = JOptionPane.showInputDialog("Enter the password:");
 

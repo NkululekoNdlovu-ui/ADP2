@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package za.ac.cput.timetableproject.dao;
 
 import java.sql.Connection;
@@ -9,41 +5,44 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-
 import javax.swing.JOptionPane;
 import za.ac.cput.timetableproject.connection.DatabaseConnection;
 import za.ac.cput.timetableproject.domain.Group;
 
-
 public class GroupsDao {
 
-    private PreparedStatement ps;
     private Connection con;
 
     public GroupsDao() {
         try {
             if (this.con == null || this.con.isClosed()) {
                 this.con = DatabaseConnection.createConnection();
-                //creating the database table after connecting to db
-                createGroup();
+                // Create the table if it does not exist
+                createGroupTable();
                 JOptionPane.showMessageDialog(null, "Connection Established");
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         }
     }
-    public void createGroup(){
-        String sql = "CREATE TABLE Group(GroupID INT PRIMARY KEY ,GroupName VARCHAR(50))";
+
+    public void createGroupTable() throws SQLException {
+        String createTableSql = "CREATE TABLE \"Group\" (GroupID INT PRIMARY KEY, GroupName VARCHAR(50))";
         
-        try{
-            ps = con.prepareStatement(sql);
-            ps.executeUpdate();
-             JOptionPane.showMessageDialog(null, "You have sucessfully created a table");
-            
-        }catch(SQLException k){
-             JOptionPane.showMessageDialog(null, "SQL error occured " + k);
+        try (PreparedStatement checkPs = con.prepareStatement("SELECT * FROM \"Group\" FETCH FIRST 1 ROWS ONLY");
+             ResultSet rs = checkPs.executeQuery()) {
+            // No rows means the table does not exist
+        } catch (SQLException e) {
+            // If table does not exist, create it
+            if (e.getSQLState().equals("42X05")) { // Table does not exist
+                try (PreparedStatement createPs = con.prepareStatement(createTableSql)) {
+                    createPs.executeUpdate();
+                    JOptionPane.showMessageDialog(null, "Table created successfully.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
+            }
         }
-        
     }
 
     public boolean save(Group group) {
@@ -52,47 +51,41 @@ public class GroupsDao {
             return false;
         }
 
-        String checkSql = "SELECT COUNT(*) FROM `Group` WHERE GroupID = ?";
-        String sql = "INSERT INTO `Group` (GroupID, GroupName) VALUES (?, ?)";
+        String checkSql = "SELECT COUNT(*) FROM \"Group\" WHERE GroupID = ?";
+        String insertSql = "INSERT INTO \"Group\" (GroupID, GroupName) VALUES (?, ?)";
 
-        try {
-            ps = con.prepareStatement(checkSql);
-            ps.setInt(1, group.getGroupId());
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            int count = rs.getInt(1);
-            rs.close();
+        try (PreparedStatement checkPs = con.prepareStatement(checkSql)) {
+            checkPs.setInt(1, group.getGroupId());
+            try (ResultSet rs = checkPs.executeQuery()) {
+                rs.next();
+                int count = rs.getInt(1);
 
-            if (count > 0) {
-                JOptionPane.showMessageDialog(null, "Error: GroupID already exists.");
-                return false;
-            } else {
-                ps.close();
+                if (count > 0) {
+                    JOptionPane.showMessageDialog(null, "Error: GroupID already exists.");
+                    return false;
+                }
+            }
 
-                ps = con.prepareStatement(sql);
-                ps.setInt(1, group.getGroupId());
-                ps.setString(2, group.getGroupName());
-
-                int rowsAffected = ps.executeUpdate();
+            try (PreparedStatement insertPs = con.prepareStatement(insertSql)) {
+                insertPs.setInt(1, group.getGroupId());
+                insertPs.setString(2, group.getGroupName());
+                int rowsAffected = insertPs.executeUpdate();
                 return rowsAffected > 0;
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
-        } finally {
-            closePreparedStatement();
         }
         return false;
     }
 
     public void updateGroup(int groupId, String newGroupName) {
-        String sql = "UPDATE `Group` SET GroupName = ? WHERE GroupID = ?";
+        String updateSql = "UPDATE \"Group\" SET GroupName = ? WHERE GroupID = ?";
 
-        try {
-            ps = con.prepareStatement(sql);
-            ps.setString(1, newGroupName);
-            ps.setInt(2, groupId);
+        try (PreparedStatement updatePs = con.prepareStatement(updateSql)) {
+            updatePs.setString(1, newGroupName);
+            updatePs.setInt(2, groupId);
+            int rowsUpdated = updatePs.executeUpdate();
 
-            int rowsUpdated = ps.executeUpdate();
             if (rowsUpdated > 0) {
                 JOptionPane.showMessageDialog(null, "Group updated successfully.");
             } else {
@@ -100,19 +93,16 @@ public class GroupsDao {
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
-        } finally {
-            closePreparedStatement();
         }
     }
 
     public void deleteGroup(int groupId) {
-        String sql = "DELETE FROM `Group` WHERE GroupID = ?";
+        String deleteSql = "DELETE FROM \"Group\" WHERE GroupID = ?";
 
-        try {
-            ps = con.prepareStatement(sql);
-            ps.setInt(1, groupId);
+        try (PreparedStatement deletePs = con.prepareStatement(deleteSql)) {
+            deletePs.setInt(1, groupId);
+            int rowsDeleted = deletePs.executeUpdate();
 
-            int rowsDeleted = ps.executeUpdate();
             if (rowsDeleted > 0) {
                 JOptionPane.showMessageDialog(null, "Group deleted successfully.");
             } else {
@@ -120,18 +110,18 @@ public class GroupsDao {
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
-        } finally {
-            closePreparedStatement();
         }
     }
 
     public boolean isGroupIdExists(int groupId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM `Group` WHERE GroupID = ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, groupId);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+        String checkSql = "SELECT COUNT(*) FROM \"Group\" WHERE GroupID = ?";
+        
+        try (PreparedStatement checkPs = con.prepareStatement(checkSql)) {
+            checkPs.setInt(1, groupId);
+            try (ResultSet rs = checkPs.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
             }
         }
         return false;
@@ -139,33 +129,19 @@ public class GroupsDao {
 
     public ArrayList<Group> readGroups() {
         ArrayList<Group> list = new ArrayList<>();
-        String sql = "SELECT * FROM `Group`";
+        String selectSql = "SELECT * FROM \"Group\"";
 
-        try {
-            ps = con.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
-            if (rs != null) {
-                while (rs.next()) {
-                    int id = rs.getInt("GroupID");
-                    String groupName = rs.getString("GroupName");
-                    list.add(new Group(id, groupName));
-                }
+        try (PreparedStatement selectPs = con.prepareStatement(selectSql);
+             ResultSet rs = selectPs.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("GroupID");
+                String groupName = rs.getString("GroupName");
+                list.add(new Group(id, groupName));
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
-        } finally {
-            closePreparedStatement();
         }
         return list;
-    }
-
-    private void closePreparedStatement() {
-        try {
-            if (ps != null) {
-                ps.close();
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error closing resources: " + e.getMessage());
-        }
     }
 }

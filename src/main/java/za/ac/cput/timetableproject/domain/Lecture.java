@@ -59,6 +59,6 @@ public class Lecture {
 
     @Override
     public String toString() {
-        return "LectureWork{" + "LectureName=" + LectureName + ", LectureSurname=" + LectureSurname + ", LectureIntials=" + LectureIntials + '}';
+        return LectureName +" "+ LectureSurname +" "+ LectureIntials ;
     }
 }

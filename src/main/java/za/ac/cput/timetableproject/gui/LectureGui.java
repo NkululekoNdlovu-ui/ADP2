@@ -2,12 +2,14 @@ package za.ac.cput.timetableproject.gui;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import za.ac.cput.timetableproject.dao.LectureDao;
 import za.ac.cput.timetableproject.domain.Lecture;
-
 
 public class LectureGui extends JPanel {
 
@@ -15,7 +17,7 @@ public class LectureGui extends JPanel {
     private DefaultTableModel tableModel;
     private JTable table;
     private JScrollPane pane;
-    private ArrayList<Lecture>list ;
+    private ArrayList<Lecture> list;
 
     public LectureGui() {
         setLayout(new BorderLayout());
@@ -36,7 +38,7 @@ public class LectureGui extends JPanel {
         table = new JTable(tableModel);
         pane = new JScrollPane(table);
         setSize(450, 250);
-        
+
         list = new ArrayList<>();
 
         // Set up the GUI layout
@@ -72,34 +74,32 @@ public class LectureGui extends JPanel {
         add_New.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Add new lecture logic
-               
                 JPanel innerPanel = new JPanel(new GridLayout(4, 2));
                 JTextField lectureCode = new JTextField();
                 JTextField name = new JTextField();
                 JTextField surname = new JTextField();
-                JTextField intials = new JTextField();
+                JTextField initials = new JTextField();
 
-                JLabel LectureID = new JLabel("LectureID");
+                JLabel lectureID = new JLabel("LectureID");
                 JLabel lectureName = new JLabel("Lecture Name");
-                JLabel lecureSurname = new JLabel("Surname ");
-                JLabel lectureIntials = new JLabel("Intials ");
+                JLabel lectureSurname = new JLabel("Surname ");
+                JLabel lectureInitials = new JLabel("Initials ");
 
-                innerPanel.add(LectureID);
+                innerPanel.add(lectureID);
                 innerPanel.add(lectureCode);
                 innerPanel.add(lectureName);
                 innerPanel.add(name);
-                innerPanel.add(lecureSurname);
+                innerPanel.add(lectureSurname);
                 innerPanel.add(surname);
-                innerPanel.add(lectureIntials);
-                innerPanel.add(intials);
-                
+                innerPanel.add(lectureInitials);
+                innerPanel.add(initials);
+
                 int result = JOptionPane.showConfirmDialog(null, innerPanel,
                         "Enter Lecture Details", JOptionPane.OK_CANCEL_OPTION);
 
                 if (result == JOptionPane.OK_OPTION) {
                     try {
                         String idStr = lectureCode.getText();
-
                         if (!idStr.matches("\\d+")) {
                             JOptionPane.showMessageDialog(null, "LectureID must be a number.", "Input Error", JOptionPane.ERROR_MESSAGE);
                             return;
@@ -108,17 +108,16 @@ public class LectureGui extends JPanel {
                         int idd = Integer.parseInt(idStr);
                         String Lname = name.getText();
                         String Sname = surname.getText();
-                        String Linitials = intials.getText();
+                        String Linitials = initials.getText();
 
                         if (Lname.length() < 3) {
-                            JOptionPane.showMessageDialog(null, "Lecture Name must be at least 4 letters long.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(null, "Lecture Name must be at least 3 letters long.", "Input Error", JOptionPane.ERROR_MESSAGE);
                             return;
                         }
-                        if (Sname.length() < 3  ) {
-                            JOptionPane.showMessageDialog(null, "Lecture Surname must be at least 4 letters long.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                        if (Sname.length() < 3) {
+                            JOptionPane.showMessageDialog(null, "Lecture Surname must be at least 3 letters long.", "Input Error", JOptionPane.ERROR_MESSAGE);
                             return;
                         }
-
                         if (!Lname.matches("[a-zA-Z]+")) {
                             JOptionPane.showMessageDialog(null, "Lecture Name must contain only letters.", "Input Error", JOptionPane.ERROR_MESSAGE);
                             return;
@@ -142,14 +141,9 @@ public class LectureGui extends JPanel {
                         Lecture newLecture = new Lecture(idd, Lname, Sname, Linitials);
                         dao.save(newLecture);
 
-                        tableModel.addRow(new Object[]{idd, Lname, Sname, Linitials});
-                         list = dao.readLecture();
+                        list = dao.readLectures();
+                        updateTable();
 
-                        for (Lecture dd : list) {
-
-                            tableModel.addRow(new Object[]{dd.getLectureID(), dd.getLectureName(), dd.getLectureSurname(), dd.getLectureIntials()});
-                        }
-                         
                         JOptionPane.showMessageDialog(null, "Lecture successfully added");
 
                     } catch (NumberFormatException ex) {
@@ -159,19 +153,17 @@ public class LectureGui extends JPanel {
                     }
                 }
             }
-            
         });
 
         change.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Change lecture logic
-                 int selectedRow = table.getSelectedRow();
+                int selectedRow = table.getSelectedRow();
 
                 if (selectedRow != -1) {
-                    String oldName = table.getValueAt(selectedRow, 0).toString();
-                    String oldSurname = table.getValueAt(selectedRow, 1).toString();
+                    int lectureID = Integer.parseInt(table.getValueAt(selectedRow, 0).toString());
 
-                    JPanel innerPanel = new JPanel(new GridLayout(4, 2));
+                    JPanel innerPanel = new JPanel(new GridLayout(3, 2));
                     JTextField newName = new JTextField();
                     JTextField newSurname = new JTextField();
                     JTextField newInitials = new JTextField();
@@ -209,12 +201,9 @@ public class LectureGui extends JPanel {
                             }
 
                             LectureDao dao = new LectureDao();
-                            dao.udpateLectureTable(oldName, oldSurname, updatedName, updatedSurname, updatedInitials);
+                            dao.updateLecture(lectureID, updatedName, updatedSurname, updatedInitials);
 
-                            DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
-                            tableModel.setValueAt(updatedName, selectedRow, 0);
-                            tableModel.setValueAt(updatedSurname, selectedRow, 1);
-                            tableModel.setValueAt(updatedInitials, selectedRow, 2);
+                            updateTable();
 
                             JOptionPane.showMessageDialog(null, "Lecture updated successfully!");
 
@@ -222,9 +211,10 @@ public class LectureGui extends JPanel {
                             JOptionPane.showMessageDialog(null, "Error occurred: " + ex.getMessage());
                         }
                     }
+                } else {
+                    JOptionPane.showMessageDialog(null, "Please select a lecture to update.");
                 }
             }
-            
         });
 
         delete.addActionListener(new ActionListener() {
@@ -242,8 +232,7 @@ public class LectureGui extends JPanel {
                             LectureDao dao = new LectureDao();
                             dao.delete(lectureId);
 
-                            DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
-                            tableModel.removeRow(selectedRow);
+                            updateTable();
 
                             JOptionPane.showMessageDialog(null, "Lecture deleted successfully!");
 
@@ -254,8 +243,19 @@ public class LectureGui extends JPanel {
                 } else {
                     JOptionPane.showMessageDialog(null, "Please select a lecture to delete.");
                 }
-            
             }
         });
+    }
+
+    private void updateTable() {
+        try {
+            list = new LectureDao().readLectures();
+        } catch (SQLException ex) {
+            Logger.getLogger(LectureGui.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        tableModel.setRowCount(0); // Clear existing rows
+        for (Lecture dd : list) {
+            tableModel.addRow(new Object[]{dd.getLectureID(), dd.getLectureName(), dd.getLectureSurname(), dd.getLectureIntials()});
+        }
     }
 }

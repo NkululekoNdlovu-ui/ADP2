@@ -1,26 +1,42 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package za.ac.cput.timetableproject.domain;
 
-/**
- *
- * @author hloni
- */
 public class TimeTable {
-       private int timeTableId;
-    private int venueId;
-    private int subjectId;
+    private int timeTableId; // Auto-generated primary key
     private int lectureId;
+    private int venueId;
+    private int slotId;
+    private int groupId;
+    private int subjectCode; // Subject code
+    private String type;
+
+    public TimeTable() {
+    }
+
+    // Constructor without timeTableId
+    public TimeTable(int lectureId, int venueId, int slotId, int groupId, int subjectCode, String type) {
+        this.lectureId = lectureId;
+        this.venueId = venueId;
+        this.slotId = slotId;
+        this.groupId = groupId;
+        this.subjectCode = subjectCode;
+        this.type = type;
+    }
 
     // Getters and Setters
     public int getTimeTableId() {
-        return timeTableId;
+        return timeTableId; // This will be set after insertion
     }
 
     public void setTimeTableId(int timeTableId) {
-        this.timeTableId = timeTableId;
+        this.timeTableId = timeTableId; // Can be used after retrieval from the database
+    }
+
+    public int getLectureId() {
+        return lectureId;
+    }
+
+    public void setLectureId(int lectureId) {
+        this.lectureId = lectureId;
     }
 
     public int getVenueId() {
@@ -31,19 +47,35 @@ public class TimeTable {
         this.venueId = venueId;
     }
 
-    public int getSubjectId() {
-        return subjectId;
+    public int getSlotId() {
+        return slotId;
     }
 
-    public void setSubjectId(int subjectId) {
-        this.subjectId = subjectId;
+    public void setSlotId(int slotId) {
+        this.slotId = slotId;
     }
 
-    public int getLectureId() {
-        return lectureId;
+    public int getGroupId() {
+        return groupId;
     }
 
-    public void setLectureId(int lectureId) {
-        this.lectureId = lectureId;
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
+    }
+
+    public int getSubjectCode() {
+        return subjectCode;
+    }
+
+    public void setSubjectCode(int subjectCode) {
+        this.subjectCode = subjectCode;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

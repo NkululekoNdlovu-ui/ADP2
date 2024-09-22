@@ -1,17 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package za.ac.cput.timetableproject.dao;
 
-/**
- *
- * @author hloni
- */
-import java.sql.Connection;
 import java.sql.*;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
@@ -19,61 +8,89 @@ import za.ac.cput.timetableproject.connection.DatabaseConnection;
 import za.ac.cput.timetableproject.domain.TimeTable;
 
 public class TimeTableDao {
-
-    PreparedStatement ps;
-    Connection con;
+    private PreparedStatement ps;
 
     public TimeTableDao() {
         try {
-            if (this.con == null || this.con.isClosed()) {
-                this.con = DatabaseConnection.createConnection();
-                JOptionPane.showMessageDialog(null, "Connection Established");
-            }
-        } catch (SQLException k) {
-            JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
+            createTable();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         }
     }
 
-   
-    
-    public void createTable() throws SQLException {
+    public void createTable() {
         String createTableSQL = "CREATE TABLE TimeTable ("
-                + "timeTableId INT PRIMARY KEY, "
-                + "venueId INT, "
-                + "subjectId INT, "
+                + "timeTableId INT GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1) PRIMARY KEY, "
                 + "lectureId INT, "
+                + "venueId INT, "
+                + "slotId INT, "
+                + "groupId INT, "
+                + "subjectCode INT, "
+                + "type VARCHAR(20), "
+                + "FOREIGN KEY (lectureId) REFERENCES Lecture(lectureId), "
                 + "FOREIGN KEY (venueId) REFERENCES Venue(venueId), "
-                + "FOREIGN KEY (subjectId) REFERENCES Subject(subjectId), "
-                + "FOREIGN KEY (lectureId) REFERENCES Lecture(lectureId))";
-        ps = con.prepareStatement(createTableSQL);
-        ps.execute();
-    }
+                + "FOREIGN KEY (slotId) REFERENCES Slot(slotId), "
+                + "FOREIGN KEY (groupId) REFERENCES \"Group\"(GroupID), "
+                + "FOREIGN KEY (subjectCode) REFERENCES Subject(subjectCode) )";
 
-    // Method to insert a TimeTable record
-    public void insert(TimeTable table) throws SQLException {
-        String insertSQL = "INSERT INTO TimeTable (timeTableId, venueId, subjectId, lectureId) VALUES (?, ?, ?, ?)";
-        ps = con.prepareStatement(insertSQL);
-        ps.setInt(1, table.getTimeTableId());
-        ps.setInt(2, table.getVenueId());
-        ps.setInt(3, table.getSubjectId());
-        ps.setInt(4, table.getLectureId());
-        ps.executeUpdate();
+        try (Connection con = DatabaseConnection.createConnection(); 
+             PreparedStatement createPs = con.prepareStatement(createTableSQL)) {
+            createPs.execute();
+            JOptionPane.showMessageDialog(null, "Table 'TimeTable' created successfully.");
+        } catch (SQLException e) {
+            if (e.getSQLState().equals("42X05")) { // Table does not exist
+                JOptionPane.showMessageDialog(null, "Table 'TimeTable' already exists.");
+            } else {
+                JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
+            }
+        }
     }
 
     
-    public List<TimeTable> getAll() throws SQLException {
-        String selectSQL = "SELECT * FROM TimeTable";
-        ps = con.prepareStatement(selectSQL);
-        ResultSet rs = ps.executeQuery();
+    public void insert(TimeTable table) throws SQLException {
+        String insertSQL = "INSERT INTO TimeTable (lectureId, venueId, slotId, groupId, subjectCode, type) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection con = DatabaseConnection.createConnection(); 
+             PreparedStatement ps = con.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, table.getLectureId());
+            ps.setInt(2, table.getVenueId());
+            ps.setInt(3, table.getSlotId());
+            ps.setInt(4, table.getGroupId());
+            ps.setInt(5, table.getSubjectCode());
+            ps.setString(6, table.getType());
+            ps.executeUpdate();
 
+            
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    table.setTimeTableId(generatedKeys.getInt(1));
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred during insertion: " + e.getMessage());
+        }
+    }
+
+    public List<TimeTable> getAll() throws SQLException {
         List<TimeTable> timeTables = new ArrayList<>();
-        while (rs.next()) {
-            TimeTable timeTable = new TimeTable();
-            timeTable.setTimeTableId(rs.getInt("timeTableId"));
-            timeTable.setVenueId(rs.getInt("venueId"));
-            timeTable.setSubjectId(rs.getInt("subjectId"));
-            timeTable.setLectureId(rs.getInt("lectureId"));
-            timeTables.add(timeTable);
+        String selectSQL = "SELECT * FROM TimeTable";
+
+        try (Connection con = DatabaseConnection.createConnection(); 
+             PreparedStatement ps = con.prepareStatement(selectSQL); 
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                TimeTable timeTable = new TimeTable();
+                timeTable.setTimeTableId(rs.getInt("timeTableId"));
+                timeTable.setLectureId(rs.getInt("lectureId"));
+                timeTable.setVenueId(rs.getInt("venueId"));
+                timeTable.setSlotId(rs.getInt("slotId"));
+                timeTable.setGroupId(rs.getInt("groupId"));
+                timeTable.setSubjectCode(rs.getInt("subjectCode"));
+                timeTable.setType(rs.getString("type"));
+                timeTables.add(timeTable);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred during retrieval: " + e.getMessage());
         }
         return timeTables;
     }
