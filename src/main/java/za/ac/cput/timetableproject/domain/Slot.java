@@ -49,4 +49,11 @@ public class Slot {
     public void setDayOfWeek(String dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
     }
+
+    @Override
+    public String toString() {
+        return  slotId +" "+  startTime + " "+ endTime + " "+  dayOfWeek ;
+    }
+    
+    
 }

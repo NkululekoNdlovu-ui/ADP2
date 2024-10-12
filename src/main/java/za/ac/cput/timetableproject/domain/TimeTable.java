@@ -78,4 +78,10 @@ public class TimeTable {
     public void setType(String type) {
         this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return "TimeTable{" + "timeTableId=" + timeTableId + ", lectureId=" + lectureId + ", venueId=" + venueId + ", slotId=" + slotId + ", groupId=" + groupId + ", subjectCode=" + subjectCode + ", type=" + type + '}';
+    }
+    
 }

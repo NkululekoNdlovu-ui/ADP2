@@ -139,7 +139,7 @@ public class LectureGui extends JPanel {
                         }
 
                         Lecture newLecture = new Lecture(idd, Lname, Sname, Linitials);
-                        dao.save(newLecture);
+                        dao.saveLecture(newLecture);
 
                         list = dao.readLectures();
                         updateTable();
@@ -230,7 +230,7 @@ public class LectureGui extends JPanel {
                     if (confirm == JOptionPane.YES_OPTION) {
                         try {
                             LectureDao dao = new LectureDao();
-                            dao.delete(lectureId);
+                            dao.deleteLecture(lectureId);
 
                             updateTable();
 

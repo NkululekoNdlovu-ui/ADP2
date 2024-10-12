@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package za.ac.cput.timetableproject.dao;
 
 import java.sql.Connection;
@@ -15,28 +11,30 @@ import javax.swing.JOptionPane;
 import za.ac.cput.timetableproject.connection.DatabaseConnection;
 import za.ac.cput.timetableproject.domain.Subject;
 
-/**
- *
- * @author hloni
- */
 public class SubjectDao {
     private Connection con;
     private PreparedStatement ps;
 
     public SubjectDao() {
         try {
-            if (this.con == null || this.con.isClosed()) {  // Check if the connection is null or closed
-                this.con = DatabaseConnection.createConnection();
-                createSubjectTable();
-                JOptionPane.showMessageDialog(null, "Connection Established");
-            }
+            this.con = DatabaseConnection.createConnection();
+            createSubjectTable();
+            JOptionPane.showMessageDialog(null, "Connection Established");
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
         }
     }
 
+    // Ensures the connection is active
+    private void ensureConnection() throws SQLException {
+        if (con == null || con.isClosed()) {
+            con = DatabaseConnection.createConnection();
+        }
+    }
+
     // Create Subject table
-    public void createSubjectTable() {
+    public void createSubjectTable() throws SQLException {
+        ensureConnection(); // Ensure connection before using it
         String sql = "CREATE TABLE Subject ("
                    + "subjectCode INT PRIMARY KEY, "
                    + "description VARCHAR(255))";
@@ -48,23 +46,18 @@ public class SubjectDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, k.getMessage());
-            }
+            closeResources(ps);
         }
     }
 
     // Update Subject details
-    public void updateSubject(int oldCode, String updatedSubject) {
+    public void updateSubject(int oldCode, String updatedSubject) throws SQLException {
+        ensureConnection(); // Ensure connection before updating
         String sql = "UPDATE Subject SET description = ? WHERE subjectCode = ?";
 
         try {
             ps = con.prepareStatement(sql);
-            ps.setString(1,updatedSubject );
+            ps.setString(1, updatedSubject);
             ps.setInt(2, oldCode);
             int rowsUpdated = ps.executeUpdate();
             
@@ -76,18 +69,13 @@ public class SubjectDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, k.getMessage());
-            }
+            closeResources(ps);
         }
     }
 
     // Read all subjects
-    public ArrayList<Subject> readSubjects() {
+    public ArrayList<Subject> readSubjects() throws SQLException {
+        ensureConnection(); // Ensure connection before reading
         ArrayList<Subject> list = new ArrayList<>();
         String sql = "SELECT * FROM Subject";
 
@@ -103,19 +91,14 @@ public class SubjectDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ex) {
-                Logger.getLogger(SubjectDao.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            closeResources(ps);
         }
         return list;
     }
 
     // Save a new subject
-    public boolean save(Subject subject) {
+    public boolean save(Subject subject) throws SQLException {
+        ensureConnection(); // Ensure connection before saving
         String sql = "INSERT INTO Subject(subjectCode, description) VALUES(?, ?)";
 
         String checkSql = "SELECT COUNT(*) FROM Subject WHERE subjectCode = ?";
@@ -147,19 +130,14 @@ public class SubjectDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, k.getMessage());
-            }
+            closeResources(ps);
         }
         return false;
     }
 
     // Delete a subject by code
-    public void delete(int code) {
+    public void delete(int code) throws SQLException {
+        ensureConnection(); // Ensure connection before deleting
         String sql = "DELETE FROM Subject WHERE subjectCode = ?";
 
         try {
@@ -175,11 +153,14 @@ public class SubjectDao {
             }
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, k.getMessage());
+        } finally {
+            closeResources(ps);
         }
     }
 
     // Check if a subject code exists
     public boolean isSubjectCodeExists(int code) throws SQLException {
+        ensureConnection(); // Ensure connection before checking existence
         String sql = "SELECT COUNT(*) FROM Subject WHERE subjectCode = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, code);
@@ -190,7 +171,10 @@ public class SubjectDao {
         }
         return false;
     }
-    public ArrayList<String> Subjects() {
+
+    // Retrieve list of subject codes
+    public ArrayList<String> Subjects() throws SQLException {
+        ensureConnection(); // Ensure connection before retrieving subject codes
         ArrayList<String> list = new ArrayList<>();
         String sql = "SELECT * FROM Subject";  // Adjust the SQL if needed
 
@@ -200,14 +184,52 @@ public class SubjectDao {
 
             if (rs != null) {
                 while (rs.next()) {
-                    int sId = rs.getInt(1);  // Assuming ID is the first column
-                    String code = rs.getString(2);  // Assuming code is the second column
+                    String code = rs.getString("description");  // Assuming code is in the second column
                     list.add(code);
                 }
             }
         } catch (SQLException k) {
             k.printStackTrace();  // Print the exception for debugging
+        } finally {
+            closeResources(ps);
         }
         return list;
+    }
+
+    // Retrieve specific subject by code
+    public Subject selectedSubject(int subjectCode) throws SQLException {
+        ensureConnection(); // Ensure connection before retrieving
+        Subject subject = null; // Initialize subject to null in case it doesn't exist
+        String selectSql = "SELECT * FROM Subject WHERE subjectCode = ?";
+
+        try {
+            ps = con.prepareStatement(selectSql);
+            ps.setInt(1, subjectCode); // Set the subjectCode parameter
+            
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) { // Check if there is a result
+                int code = rs.getInt("subjectCode");
+                String description = rs.getString("description");
+                subject = new Subject(code, description); // Create a new Subject object
+            } else {
+                JOptionPane.showMessageDialog(null, "No subject found with the provided subject code.");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closeResources(ps);
+        }
+        return subject; // Return the found subject or null if not found
+    }
+
+    // Utility method to close resources
+    private void closeResources(AutoCloseable resource) {
+        if (resource != null) {
+            try {
+                resource.close();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Error closing resource: " + ex.getMessage());
+            }
+        }
     }
 }

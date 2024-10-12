@@ -15,18 +15,23 @@ public class GroupsDao {
 
     public GroupsDao() {
         try {
-            if (this.con == null || this.con.isClosed()) {
-                this.con = DatabaseConnection.createConnection();
-                // Create the table if it does not exist
-                createGroupTable();
-                JOptionPane.showMessageDialog(null, "Connection Established");
-            }
+            this.con = DatabaseConnection.createConnection();
+            createGroupTable();
+            JOptionPane.showMessageDialog(null, "Connection Established");
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         }
     }
 
+    private void ensureConnection() throws SQLException {
+        // Check if the connection is closed or null and create a new one if necessary
+        if (con == null || con.isClosed()) {
+            con = DatabaseConnection.createConnection();
+        }
+    }
+
     public void createGroupTable() throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         String createTableSql = "CREATE TABLE \"Group\" (GroupID INT PRIMARY KEY, GroupName VARCHAR(50))";
         
         try (PreparedStatement checkPs = con.prepareStatement("SELECT * FROM \"Group\" FETCH FIRST 1 ROWS ONLY");
@@ -45,12 +50,8 @@ public class GroupsDao {
         }
     }
 
-    public boolean save(Group group) {
-        if (this.con == null) {
-            JOptionPane.showMessageDialog(null, "No database connection.");
-            return false;
-        }
-
+    public boolean save(Group group) throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         String checkSql = "SELECT COUNT(*) FROM \"Group\" WHERE GroupID = ?";
         String insertSql = "INSERT INTO \"Group\" (GroupID, GroupName) VALUES (?, ?)";
 
@@ -78,7 +79,8 @@ public class GroupsDao {
         return false;
     }
 
-    public void updateGroup(int groupId, String newGroupName) {
+    public void updateGroup(int groupId, String newGroupName) throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         String updateSql = "UPDATE \"Group\" SET GroupName = ? WHERE GroupID = ?";
 
         try (PreparedStatement updatePs = con.prepareStatement(updateSql)) {
@@ -96,7 +98,8 @@ public class GroupsDao {
         }
     }
 
-    public void deleteGroup(int groupId) {
+    public void deleteGroup(int groupId) throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         String deleteSql = "DELETE FROM \"Group\" WHERE GroupID = ?";
 
         try (PreparedStatement deletePs = con.prepareStatement(deleteSql)) {
@@ -114,6 +117,7 @@ public class GroupsDao {
     }
 
     public boolean isGroupIdExists(int groupId) throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         String checkSql = "SELECT COUNT(*) FROM \"Group\" WHERE GroupID = ?";
         
         try (PreparedStatement checkPs = con.prepareStatement(checkSql)) {
@@ -127,7 +131,8 @@ public class GroupsDao {
         return false;
     }
 
-    public ArrayList<Group> readGroups() {
+    public ArrayList<Group> readGroups() throws SQLException {
+        ensureConnection();  // Ensure connection before using it
         ArrayList<Group> list = new ArrayList<>();
         String selectSql = "SELECT * FROM \"Group\"";
 
@@ -143,5 +148,27 @@ public class GroupsDao {
             JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
         }
         return list;
+    }
+    
+   public Group selectedGroup(int groupId) throws SQLException {
+        ensureConnection();  // Ensure connection before using it
+        Group group = null;  // Initialize group to null in case it doesn't exist
+        String selectSql = "SELECT * FROM \"Group\" WHERE GroupID = ?";
+
+        try (PreparedStatement selectPs = con.prepareStatement(selectSql)) {
+            selectPs.setInt(1, groupId);
+            try (ResultSet rs = selectPs.executeQuery()) {
+                if (rs.next()) {
+                    int id = rs.getInt("GroupID");
+                    String groupName = rs.getString("GroupName");
+                    group = new Group(id, groupName);  // Create a new Group object
+                } else {
+                    JOptionPane.showMessageDialog(null, "No group found with the provided GroupID.");
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        }
+        return group;  // Return the found group or null if not found
     }
 }

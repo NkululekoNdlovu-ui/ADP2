@@ -1,27 +1,29 @@
 package za.ac.cput.timetableproject.gui;
 
 import java.awt.*;
+import java.sql.SQLException;
 import javax.swing.*;
 
 public class MainGui extends JFrame {
 
-    private JButton generate, venue, subject, lecture, groups;
+    private JButton generate, venue, subject, lecture, groups, viewTable; // Add viewTable button
     private JPanel contentPanel;
     private CardLayout cardLayout;
 
-    public MainGui() {
+    public MainGui() throws SQLException {
         // Initialize components
         generate = new JButton("Generate");
         lecture = new JButton("Lecture");
         venue = new JButton("Venue");
         subject = new JButton("Subject");
         groups = new JButton("Groups");
+        viewTable = new JButton("View Table"); // Initialize the new button
 
         // Set up the GUI
         setGui();
     }
 
-    private void setGui() {
+    private void setGui() throws SQLException {
         // Set up the frame
         setTitle("Main GUI");
         setSize(800, 600); // Adjust size as needed
@@ -30,14 +32,15 @@ public class MainGui extends JFrame {
 
         // Create a panel for buttons and set its layout
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(6, 1)); // Six rows for the buttons
+        buttonPanel.setLayout(new GridLayout(7, 1)); // Update to 7 rows to include the new button
 
         // Add buttons to the panel
         buttonPanel.add(generate);
         buttonPanel.add(lecture);
         buttonPanel.add(venue);
-        buttonPanel.add(subject); // Add Subject button here
+        buttonPanel.add(subject);
         buttonPanel.add(groups);
+        buttonPanel.add(viewTable); // Add View Table button
 
         // Add the button panel to the west side of the frame
         add(buttonPanel, BorderLayout.WEST);
@@ -46,7 +49,7 @@ public class MainGui extends JFrame {
         contentPanel = new JPanel();
         contentPanel.setLayout(new BorderLayout());
 
-        // Create a panel to hold VenueGui, LectureGui, GroupsGui, GenerateGui, and SubjectGui
+        // Create a panel to hold VenueGui, LectureGui, GroupsGui, GenerateGui, SubjectGui, and ViewTable
         JPanel contentHolder = new JPanel(new CardLayout());
 
         // Initial image panel
@@ -67,6 +70,7 @@ public class MainGui extends JFrame {
         GroupsGui groupsGui = new GroupsGui();
         GenerateGui generateGui = new GenerateGui();
         SubjectGui subjectGui = new SubjectGui(); // Create instance of SubjectGui
+        ViewTable viewTableGui = new ViewTable(); // Create instance of ViewTable
 
         // Add panels to contentHolder
         contentHolder.add(venueGui, "Venue");
@@ -74,6 +78,7 @@ public class MainGui extends JFrame {
         contentHolder.add(groupsGui, "Groups");
         contentHolder.add(generateGui, "Generate");
         contentHolder.add(subjectGui, "Subject"); // Add SubjectGui to contentHolder
+        contentHolder.add(viewTableGui, "ViewTable"); // Add ViewTable to contentHolder
 
         contentPanel.add(contentHolder, BorderLayout.CENTER);
 
@@ -89,13 +94,12 @@ public class MainGui extends JFrame {
         venue.addActionListener(e -> cardLayout.show(contentHolder, "Venue"));
         groups.addActionListener(e -> cardLayout.show(contentHolder, "Groups"));
         generate.addActionListener(e -> cardLayout.show(contentHolder, "Generate"));
-        subject.addActionListener(e -> cardLayout.show(contentHolder, "Subject")); // Add action listener for Subject button
+        subject.addActionListener(e -> cardLayout.show(contentHolder, "Subject"));
+        viewTable.addActionListener(e -> cardLayout.show(contentHolder, "ViewTable")); // Add action listener for View Table button
 
         // Make the frame visible
         setVisible(true);
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(MainGui::new);
-    }
+   
 }

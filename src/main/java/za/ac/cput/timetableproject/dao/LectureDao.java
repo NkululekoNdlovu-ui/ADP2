@@ -14,6 +14,13 @@ public class LectureDao {
         createTable(); // Ensure the table is created when the DAO is initialized
     }
 
+    private void ensureConnection() throws SQLException {
+        // Check if the connection is closed or null and create a new one if necessary
+        if (con == null || con.isClosed()) {
+            con = DatabaseConnection.createConnection();
+        }
+    }
+
     public void createTable() {
         String sql = "CREATE TABLE Lecture (" +
                      "LectureID INT PRIMARY KEY, " +
@@ -32,7 +39,8 @@ public class LectureDao {
         }
     }
 
-    public void save(Lecture lecture) {
+    public void saveLecture(Lecture lecture) throws SQLException {
+        ensureConnection();
         String sql = "INSERT INTO Lecture (LectureID, LectureName, LectureSurname, LectureIntials) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, lecture.getLectureID());
@@ -45,7 +53,8 @@ public class LectureDao {
         }
     }
 
-    public void updateLecture(int lectureID, String name, String surname, String initials) {
+    public void updateLecture(int lectureID, String name, String surname, String initials) throws SQLException {
+        ensureConnection();
         String sql = "UPDATE Lecture SET LectureName = ?, LectureSurname = ?, LectureIntials = ? WHERE LectureID = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, name);
@@ -63,7 +72,8 @@ public class LectureDao {
         }
     }
 
-    public void delete(int lectureID) {
+    public void deleteLecture(int lectureID) throws SQLException {
+        ensureConnection();
         String sql = "DELETE FROM Lecture WHERE LectureID = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, lectureID);
@@ -73,7 +83,8 @@ public class LectureDao {
         }
     }
 
-    public ArrayList<Lecture> readLectures() {
+    public ArrayList<Lecture> readLectures() throws SQLException {
+        ensureConnection();
         ArrayList<Lecture> lectures = new ArrayList<>();
         String sql = "SELECT * FROM Lecture";
         try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
@@ -91,7 +102,8 @@ public class LectureDao {
         return lectures;
     }
 
-    public boolean isLectureIdExists(int lectureID) {
+    public boolean isLectureIdExists(int lectureID) throws SQLException {
+        ensureConnection();
         String sql = "SELECT 1 FROM Lecture WHERE LectureID = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, lectureID);
@@ -102,5 +114,26 @@ public class LectureDao {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public Lecture getLectureById(int lectureID) throws SQLException {
+        ensureConnection();
+        String sql = "SELECT * FROM Lecture WHERE LectureID = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, lectureID);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString("LectureName");
+                    String surname = rs.getString("LectureSurname");
+                    String initials = rs.getString("LectureIntials");
+                    return new Lecture(lectureID, name, surname, initials);
+                } else {
+                    System.out.println("No lecture found with the provided ID.");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // Return null if no lecture is found
     }
 }

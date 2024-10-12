@@ -13,7 +13,7 @@ public class VenueDao {
     PreparedStatement ps;
     Connection con;
 
-    public VenueDao() throws SQLException {
+    public VenueDao() {
         try {
             this.con = DatabaseConnection.createConnection();
             createVenueTable();
@@ -27,7 +27,15 @@ public class VenueDao {
         }
     }
 
-    public void createVenueTable() {
+    // Ensure the connection is active
+    private void ensureConnection() throws SQLException {
+        if (con == null || con.isClosed()) {
+            con = DatabaseConnection.createConnection();
+        }
+    }
+
+    public void createVenueTable() throws SQLException {
+        ensureConnection(); // Ensure connection before table creation
         String sql = "CREATE TABLE Venue ("
                    + "VenueID INT PRIMARY KEY, "
                    + "VenueName VARCHAR(20))";
@@ -39,17 +47,12 @@ public class VenueDao {
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(null, "Error closing resources: " + e.getMessage());
-            }
+            closeResources(ps);
         }
     }
 
-    public void updateVenue(int venueId, String newVenueName) {
+    public void updateVenue(int venueId, String newVenueName) throws SQLException {
+        ensureConnection(); // Ensure connection before updating
         String sql = "UPDATE Venue SET VenueName = ? WHERE VenueID = ?";
 
         try {
@@ -68,17 +71,12 @@ public class VenueDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, "Error closing resources: " + k.getMessage());
-            }
+            closeResources(ps);
         }
     }
 
-    public boolean saveVenue(Venue venue) {
+    public boolean saveVenue(Venue venue) throws SQLException {
+        ensureConnection(); // Ensure connection before saving
         if (this.con == null) {
             JOptionPane.showMessageDialog(null, "No database connection.");
             return false;
@@ -118,18 +116,13 @@ public class VenueDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL Error: " + k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, "Error closing resources: " + k.getMessage());
-            }
+            closeResources(ps);
         }
         return false;
     }
 
-    public ArrayList<Venue> readVenue() {
+    public ArrayList<Venue> readVenue() throws SQLException {
+        ensureConnection(); // Ensure connection before reading venues
         ArrayList<Venue> list = new ArrayList<>();
         String sql = "SELECT * FROM Venue";
 
@@ -147,18 +140,13 @@ public class VenueDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ex) {
-                Logger.getLogger(VenueDao.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            closeResources(ps);
         }
         return list;
     }
 
-    public void deleteVenue(int id) {
+    public void deleteVenue(int id) throws SQLException {
+        ensureConnection(); // Ensure connection before deleting
         String sql = "DELETE FROM Venue WHERE VenueID = ?";
 
         try {
@@ -175,17 +163,12 @@ public class VenueDao {
         } catch (SQLException k) {
             JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
         } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException k) {
-                JOptionPane.showMessageDialog(null, "Error closing resources: " + k.getMessage());
-            }
+            closeResources(ps);
         }
     }
 
     public boolean isVenueIdExists(int id) throws SQLException {
+        ensureConnection(); // Ensure connection before checking existence
         String sql = "SELECT COUNT(*) FROM Venue WHERE VenueID = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -195,5 +178,41 @@ public class VenueDao {
             }
         }
         return false;
+    }
+
+    public Venue selectedVenue(int venueId) throws SQLException {
+        ensureConnection(); // Ensure connection before selecting venue
+        Venue venue = null; // Initialize venue to null in case it doesn't exist
+        String selectSql = "SELECT * FROM Venue WHERE VenueID = ?";
+
+        try {
+            ps = con.prepareStatement(selectSql);
+            ps.setInt(1, venueId); // Set the venueId parameter
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) { // Check if there is a result
+                int id = rs.getInt("VenueID");
+                String venueName = rs.getString("VenueName");
+                venue = new Venue(id, venueName); // Create a new Venue object
+            } else {
+                JOptionPane.showMessageDialog(null, "No venue found with the provided VenueID.");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL Error: " + e.getMessage());
+        } finally {
+            closeResources(ps);
+        }
+        return venue; // Return the found venue or null if not found
+    }
+
+    // Utility method to close resources
+    private void closeResources(AutoCloseable resource) {
+        if (resource != null) {
+            try {
+                resource.close();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Error closing resource: " + ex.getMessage());
+            }
+        }
     }
 }

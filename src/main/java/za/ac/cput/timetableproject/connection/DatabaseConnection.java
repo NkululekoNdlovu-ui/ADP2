@@ -9,9 +9,10 @@ public class DatabaseConnection {
 
     public static Connection createConnection() throws SQLException {
         if (con == null || con.isClosed()) {
-            String url = "jdbc:derby://localhost:1527/Lecture5";
-            String username = JOptionPane.showInputDialog("Enter the username for the database:");
-            String password = JOptionPane.showInputDialog("Enter the password:");
+            String url = "jdbc:derby://localhost:1527/Project";
+            String username = "user1";
+            String password = "password";
+            
 
             con = DriverManager.getConnection(url, username, password);
             

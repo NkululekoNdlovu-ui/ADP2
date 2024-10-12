@@ -45,7 +45,7 @@ public class GenerateGui extends JPanel {
     private SlotDao slotDao;
     private int slotId;
 
-    public GenerateGui() {
+    public GenerateGui() throws SQLException {
         setLayout(new BorderLayout());
         tDao = new TimeTableDao();
         slotDao = new SlotDao();
@@ -137,7 +137,7 @@ public class GenerateGui extends JPanel {
         slotId = -1;
 
         try {
-            slotId = slotDao.insert(slot2);
+            slotId = slotDao.insertSlot(slot2);
         } catch (SQLException ex) {
             Logger.getLogger(GenerateGui.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -259,7 +259,7 @@ public class GenerateGui extends JPanel {
         JOptionPane.showMessageDialog(this, "Timetable saved successfully.");
     }
 
-    private void populateGroups() {
+    private void populateGroups() throws SQLException {
         gDao = new GroupsDao();
         List<Group> groups = gDao.readGroups();
         for (Group group : groups) {
@@ -267,7 +267,7 @@ public class GenerateGui extends JPanel {
         }
     }
 
-    private void populateLecture() {
+    private void populateLecture() throws SQLException {
         try {
             lDao = new LectureDao();
         } catch (SQLException ex) {
@@ -279,7 +279,7 @@ public class GenerateGui extends JPanel {
         }
     }
 
-    private void populateSubject() {
+    private void populateSubject() throws SQLException {
         sDao = new SubjectDao();
         List<Subject> subjects = sDao.readSubjects();
         for (Subject subject : subjects) {
@@ -287,12 +287,8 @@ public class GenerateGui extends JPanel {
         }
     }
 
-    private void populateVenue() {
-        try {
-            vDao = new VenueDao();
-        } catch (SQLException ex) {
-            Logger.getLogger(GenerateGui.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    private void populateVenue() throws SQLException {
+        vDao = new VenueDao();
         List<Venue> venues = vDao.readVenue();
         for (Venue venue : venues) {
             venueComboBox.addItem(venue);

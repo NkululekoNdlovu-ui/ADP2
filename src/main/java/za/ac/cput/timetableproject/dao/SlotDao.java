@@ -12,17 +12,24 @@ public class SlotDao {
 
     public SlotDao() {
         try {
-            if (this.con == null || this.con.isClosed()) {
-                this.con = DatabaseConnection.createConnection();
-                createTable();
-                JOptionPane.showMessageDialog(null, "Connection Established");
-            }
-        } catch (SQLException k) {
-            JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
+            this.con = DatabaseConnection.createConnection();
+            createTable();
+            JOptionPane.showMessageDialog(null, "Connection Established");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         }
     }
 
-    public void createTable() {
+    // Ensures the connection is active
+    private void ensureConnection() throws SQLException {
+        // Check if the connection is closed or null and create a new one if necessary
+        if (con == null || con.isClosed()) {
+            con = DatabaseConnection.createConnection();
+        }
+    }
+
+    public void createTable() throws SQLException {
+        ensureConnection();  // Ensure connection before creating the table
         String createTableSQL = "CREATE TABLE Slot (" +
                 "slotId INT GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1) PRIMARY KEY, " +
                 "startTime VARCHAR(10), " +
@@ -33,19 +40,18 @@ public class SlotDao {
             ps = con.prepareStatement(createTableSQL);
             ps.execute();
             JOptionPane.showMessageDialog(null, "Table 'Slot' created successfully.");
-        } catch (SQLException k) {
-            JOptionPane.showMessageDialog(null, "SQL error occurred: " + k.getMessage());
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "SQL error occurred: " + e.getMessage());
         } finally {
             closeResources(ps);
         }
     }
 
     // Method to insert a Slot record
-    public int insert(Slot slot) throws SQLException {
+    public int insertSlot(Slot slot) throws SQLException {
+        ensureConnection();  // Ensure connection before inserting
         String sql = "INSERT INTO Slot (startTime, endTime, dayOfWeek) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
+        try (PreparedStatement pstmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, slot.getStartTime());
             pstmt.setString(2, slot.getEndTime());
             pstmt.setString(3, slot.getDayOfWeek());
@@ -61,21 +67,46 @@ public class SlotDao {
     }
 
     // Method to retrieve all Slot records
-    public ArrayList<Slot> getAll() throws SQLException {
+    public ArrayList<Slot> getAllSlots() throws SQLException {
+        ensureConnection();  // Ensure connection before retrieving slots
         String selectSQL = "SELECT * FROM Slot";
-        PreparedStatement preparedStatement = con.prepareStatement(selectSQL);
-        ResultSet rs = preparedStatement.executeQuery();
-
         ArrayList<Slot> list = new ArrayList<>();
-        while (rs.next()) {
-            Slot slot = new Slot();
-            slot.setSlotId(rs.getInt("slotId"));
-            slot.setStartTime(rs.getString("startTime"));
-            slot.setEndTime(rs.getString("endTime"));
-            slot.setDayOfWeek(rs.getString("dayOfWeek"));
-            list.add(slot);
+
+        try (PreparedStatement preparedStatement = con.prepareStatement(selectSQL);
+             ResultSet rs = preparedStatement.executeQuery()) {
+            while (rs.next()) {
+                Slot slot = new Slot();
+                slot.setSlotId(rs.getInt("slotId"));
+                slot.setStartTime(rs.getString("startTime"));
+                slot.setEndTime(rs.getString("endTime"));
+                slot.setDayOfWeek(rs.getString("dayOfWeek"));
+                list.add(slot);
+            }
         }
         return list;
+    }
+
+    // Method to retrieve a specific Slot by slotId
+    public Slot getSlotById(int slotId) throws SQLException {
+        ensureConnection();  // Ensure connection before retrieving slot by ID
+        Slot slot = null; // Initialize slot to null in case it doesn't exist
+        String selectSQL = "SELECT * FROM Slot WHERE slotId = ?";
+
+        try (PreparedStatement pstmt = con.prepareStatement(selectSQL)) {
+            pstmt.setInt(1, slotId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    slot = new Slot();
+                    slot.setSlotId(rs.getInt("slotId"));
+                    slot.setStartTime(rs.getString("startTime"));
+                    slot.setEndTime(rs.getString("endTime"));
+                    slot.setDayOfWeek(rs.getString("dayOfWeek"));
+                } else {
+                    JOptionPane.showMessageDialog(null, "No Slot found with the provided ID.");
+                }
+            }
+        }
+        return slot; // Return the found slot or null if not found
     }
 
     // Utility method to close resources
